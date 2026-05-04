@@ -1,145 +1,114 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import LeftPanel from '../components/LeftPanel';
-import '../index.css';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import LeftPanel from "../components/LeftPanel";
 
 function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    agree: false,
-  });
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [agree, setAgree] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
+    setError("");
+    if (password !== confirmPassword) {
+      return setError("Passwords do not match!");
     }
-    if (!formData.agree) {
-      alert('Please agree to Terms & Conditions.');
-      return;
+    if (!agree) {
+      return setError("Please agree to Terms & Conditions.");
     }
-    alert(`Account created for: ${formData.fullName}`);
-  };
+    if (password.length < 6) {
+      return setError("Password must be at least 6 characters.");
+    }
+    setLoading(true);
+    try {
+      await signup(email, password);
+      navigate("/home");
+    } catch (err) {
+      if (err.code === "auth/email-already-in-use") {
+        setError("An account with this email already exists.");
+      } else {
+        setError("Could not create account. Please try again.");
+      }
+    }
+    setLoading(false);
+  }
 
   return (
     <div className="auth-layout">
       <LeftPanel />
-
       <div className="auth-right">
         <div className="auth-header">
           <h2>Get Started</h2>
           <p>Join thousands of professionals</p>
         </div>
-
-        {/* Tab Switcher */}
         <div className="tab-switcher">
           <Link to="/login" className="tab-btn">Login</Link>
           <span className="tab-btn active">Sign Up</span>
         </div>
-
-        {/* Form */}
+        {error && <div className="error-box">{error}</div>}
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Full Name</label>
             <div className="input-wrapper">
-              <input
-                type="text"
-                name="fullName"
-                placeholder="Anna Parvin Sweety"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-              />
+              <input type="text" placeholder="Anna Parvin Sweety"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)} required />
             </div>
           </div>
-
           <div className="form-group">
             <label>Email Address</label>
             <div className="input-wrapper">
-              <input
-                type="email"
-                name="email"
-                placeholder="Anna.Parvin.Sweety@gmail.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
+              <input type="email" placeholder="Anna.Parvin.Sweety@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)} required />
             </div>
           </div>
-
           <div className="form-group">
             <label>Password</label>
             <div className="input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
+              <input type={showPassword ? "text" : "password"}
                 placeholder="Create a strong password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              <button
-                type="button"
-                className="eye-icon"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label="Toggle password"
-              >
-                {showPassword ? '🙈' : '👁️'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)} required />
+              <button type="button" className="eye-icon"
+                onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? "🙈" : "👁️"}
               </button>
             </div>
           </div>
-
           <div className="form-group">
             <label>Confirm Password</label>
             <div className="input-wrapper">
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                name="confirmPassword"
+              <input type={showConfirm ? "text" : "password"}
                 placeholder="Confirm Your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-              <button
-                type="button"
-                className="eye-icon"
-                onClick={() => setShowConfirm(!showConfirm)}
-                aria-label="Toggle confirm password"
-              >
-                {showConfirm ? '🙈' : '👁️'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)} required />
+              <button type="button" className="eye-icon"
+                onClick={() => setShowConfirm(!showConfirm)}>
+                {showConfirm ? "🙈" : "👁️"}
               </button>
             </div>
           </div>
-
           <div className="checkbox-row">
-            <input
-              type="checkbox"
-              name="agree"
-              id="agree"
-              checked={formData.agree}
-              onChange={handleChange}
-            />
+            <input type="checkbox" id="agree"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)} />
             <label htmlFor="agree">
               I agree to <a href="#terms">Terms & Conditions</a>
             </label>
           </div>
-
-          <button type="submit" className="btn-primary">
-            Create Account
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
       </div>
